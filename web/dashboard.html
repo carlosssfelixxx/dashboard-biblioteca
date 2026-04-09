@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — Monitor Ambiental Biblioteca</title>
+  <title>Monitor Ambiental — Biblioteca</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
 
@@ -13,7 +15,10 @@
   <!-- ── Topbar ─────────────────────────────────────────── -->
   <header class="topbar">
     <div class="topbar-logo">
-      <img src="https://cdn.imgchest.com/files/50cffa5181ee.jpeg" alt="qualitrack logo" style="width: 150px;">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
       Monitor Ambiental
     </div>
     <div class="topbar-spacer"></div>
@@ -28,20 +33,20 @@
 
   <!-- ── Sidebar ────────────────────────────────────────── -->
   <nav class="sidebar">
-    <a class="nav-item active" href="#" onclick="showPage('overview')">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    <a class="nav-item active" href="#" onclick="showPage('overview');return false;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       Resumen
     </a>
-    <a class="nav-item" href="#" onclick="showPage('floorplan')">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    <a class="nav-item" href="#" onclick="showPage('floorplan');return false;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
       Plano de sensores
     </a>
-    <a class="nav-item" href="#" onclick="showPage('charts')">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <a class="nav-item" href="#" onclick="showPage('charts');return false;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Gráficas históricas
     </a>
-    <a class="nav-item" href="#" onclick="showPage('alerts')">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    <a class="nav-item" href="#" onclick="showPage('alerts');return false;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
       Alertas
     </a>
   </nav>
@@ -51,75 +56,67 @@
 
     <!-- ── PAGE: Resumen ──────────────────────────────────── -->
     <div id="page-overview">
-
       <div class="card">
-        <div class="card-title">Estado actual — todos los sensores</div>
+        <div class="card-title">Estado actual</div>
         <div id="overview-grid" class="metric-grid">
           <div class="metric-chip"><span class="label">Cargando</span><span class="value">—</span></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Alertas activas</div>
         <div id="overview-alerts" class="alerts-list">
           <div style="color:var(--text-muted);font-size:13px;">Verificando…</div>
         </div>
       </div>
-
     </div>
 
     <!-- ── PAGE: Plano ────────────────────────────────────── -->
     <div id="page-floorplan" style="display:none">
       <div class="card">
-        <div class="card-title">Plano de la biblioteca — Haz hover sobre un sensor</div>
-
-        <!-- 
-          INSTRUCCIONES: Reemplaza "plano.png" con el nombre de tu imagen de render.
-          Coloca la imagen en la misma carpeta que este archivo HTML.
-          Los marcadores se posicionan con porcentajes (x%, y%) sobre la imagen.
-          Edita CONFIG.SENSORS en config.js para ajustar las posiciones.
-        -->
+        <div class="card-title">Plano — haz hover sobre un sensor</div>
         <div class="floorplan-wrap" id="floorplan-container">
-          <img src="plano.png" alt="Plano de la biblioteca" id="floorplan-img"
+          <img src="plano.png" alt="Plano" id="floorplan-img"
                onerror="this.style.display='none';document.getElementById('floorplan-fallback').style.display='flex'">
-          <!-- Fallback si no hay imagen -->
-          <div id="floorplan-fallback" style="display:flex;align-items:center;justify-content:center;min-height:260px;color:var(--text-muted);font-size:13px;flex-direction:column;gap:8px;">
+          <div id="floorplan-fallback" style="display:none;align-items:center;justify-content:center;min-height:260px;color:var(--text-muted);font-size:13px;flex-direction:column;gap:8px;">
             <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-            Coloca tu imagen de plano como <code>plano.png</code> en esta carpeta
+            Coloca tu imagen como <code>plano.png</code>
           </div>
-          <!-- Los markers se inyectan aquí por JS -->
         </div>
-
-        <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
-          <div class="status-badge ok"><span class="status-dot"></span> Dentro de rango</div>
-          <div class="status-badge warn"><span class="status-dot"></span> Alerta moderada</div>
-          <div class="status-badge danger"><span class="status-dot"></span> Alerta crítica</div>
-          <span style="margin-left:auto;font-size:12px;color:var(--text-muted)" id="last-updated">Cargando datos…</span>
+        <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+          <div class="status-badge ok"><span class="status-dot"></span> Normal</div>
+          <div class="status-badge warn"><span class="status-dot"></span> Alerta</div>
+          <div class="status-badge danger"><span class="status-dot"></span> Crítico</div>
+          <span style="margin-left:auto;font-size:12px;color:var(--text-muted)" id="last-updated">—</span>
         </div>
       </div>
     </div>
 
     <!-- ── PAGE: Gráficas ─────────────────────────────────── -->
     <div id="page-charts" style="display:none">
-      <div class="card">
-        <div class="card-title">Gráficas históricas — Últimas 24 horas</div>
-        <div class="charts-grid" id="charts-grid">
-          <!-- Se inyectan iframes de Grafana por JS -->
+
+      <div class="card" style="margin-bottom:0">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="card-title" style="margin:0">Rango de tiempo</div>
+          <select id="time-range" onchange="reloadCharts()" style="font-size:13px;padding:6px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border);background:var(--bg);color:var(--text)">
+            <option value="1h">Última hora</option>
+            <option value="6h">Últimas 6 horas</option>
+            <option value="24h" selected>Últimas 24 horas</option>
+            <option value="7d">Últimos 7 días</option>
+          </select>
+          <span id="charts-loading" style="font-size:12px;color:var(--text-muted);display:none">Cargando…</span>
         </div>
-        <p style="margin-top:16px;font-size:12px;color:var(--text-muted)">
-          Los gráficos se muestran desde Grafana Cloud. Si ves un error de sesión, abre
-          <a href="#" onclick="openLink(CONFIG.GRAFANA_BASE_URL)" style="color:var(--accent)">Grafana</a>
-          en otra pestaña e inicia sesión.
-        </p>
       </div>
+
+      <div class="charts-grid" id="charts-grid"></div>
+
     </div>
 
     <!-- ── PAGE: Alertas ──────────────────────────────────── -->
     <div id="page-alerts" style="display:none">
       <div class="card">
-        <div class="card-title">Historial de alertas — Últimas 24 horas</div>
+        <div class="card-title">Historial de alertas — últimas 24 horas</div>
         <div id="alerts-history" class="alerts-list">
-          <div style="color:var(--text-muted);font-size:13px;">Consultando InfluxDB…</div>
+          <div style="color:var(--text-muted);font-size:13px;">Consultando…</div>
         </div>
       </div>
     </div>
@@ -127,13 +124,11 @@
   </main>
 </div>
 
-<!-- ── Scripts ───────────────────────────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script>
 
-// ── Auth guard ─────────────────────────────────────────────────────────────
-
+// ── Auth ───────────────────────────────────────────────────────────────────
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 (async () => {
@@ -148,22 +143,21 @@ async function handleLogout() {
   window.location.href = 'index.html';
 }
 
-// ── Page navigation ────────────────────────────────────────────────────────
-
+// ── Navigation ─────────────────────────────────────────────────────────────
 const PAGES = ['overview', 'floorplan', 'charts', 'alerts'];
 
 function showPage(name) {
   PAGES.forEach(p => {
     document.getElementById('page-' + p).style.display = p === name ? '' : 'none';
   });
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const links = document.querySelectorAll('.nav-item');
-  const idx = PAGES.indexOf(name);
-  if (links[idx]) links[idx].classList.add('active');
+  document.querySelectorAll('.nav-item').forEach((el, i) => {
+    el.classList.toggle('active', PAGES[i] === name);
+  });
+  if (name === 'charts') reloadCharts();
+  if (name === 'alerts') renderAlertHistory();
 }
 
-// ── InfluxDB query ─────────────────────────────────────────────────────────
-
+// ── InfluxDB ───────────────────────────────────────────────────────────────
 async function queryInflux(fluxQuery) {
   const url = `${CONFIG.INFLUXDB_URL}/api/v2/query?org=${encodeURIComponent(CONFIG.INFLUXDB_ORG)}`;
   const res = await fetch(url, {
@@ -185,179 +179,170 @@ function parseCSV(csv) {
   const headers = lines[0].split(',');
   return lines.slice(1).map(line => {
     const vals = line.split(',');
-    return Object.fromEntries(headers.map((h, i) => [h.trim(), vals[i]?.trim()]));
+    return Object.fromEntries(headers.map((h, i) => [h.trim(), (vals[i] || '').trim()]));
   });
 }
 
-// Consulta el último valor de cada variable para cada sensor
 async function fetchLatestValues() {
-  const query = `
+  try {
+    const rows = await queryInflux(`
 from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
-  |> range(start: -10m)
+  |> range(start: -15m)
   |> filter(fn: (r) => r._field == "value")
   |> last()
-  |> pivot(rowKey: ["sensor_id"], columnKey: ["_measurement"], valueColumn: "_value")
-`;
-  try {
-    return await queryInflux(query);
-  } catch (e) {
-    console.error('Error consultando InfluxDB:', e);
-    return [];
-  }
+`);
+    const result = {};
+    rows.forEach(r => {
+      if (!result[r.sensor_id]) result[r.sensor_id] = {};
+      result[r.sensor_id][r._measurement] = parseFloat(r._value);
+    });
+    return result;
+  } catch(e) { console.error(e); return {}; }
 }
 
-// Consulta alertas históricas (valores que superaron umbrales en las últimas 24h)
-async function fetchAlertHistory() {
-  const thr = CONFIG.THRESHOLDS;
-  const query = `
-union(tables: [
-  from(bucket: "${CONFIG.INFLUXDB_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r._measurement == "co2" and r._field == "value" and r._value > ${thr.co2.max}) |> map(fn: (r) => ({ r with variable: "CO₂", threshold: "${thr.co2.max} ppm" })),
-  from(bucket: "${CONFIG.INFLUXDB_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r._measurement == "pm25" and r._field == "value" and r._value > ${thr.pm25.max}) |> map(fn: (r) => ({ r with variable: "PM2.5", threshold: "${thr.pm25.max} µg/m³" })),
-  from(bucket: "${CONFIG.INFLUXDB_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r._measurement == "tvoc" and r._field == "value" and r._value > ${thr.tvoc.max}) |> map(fn: (r) => ({ r with variable: "TVOC", threshold: "${thr.tvoc.max} µg/m³" })),
-  from(bucket: "${CONFIG.INFLUXDB_BUCKET}") |> range(start: -24h) |> filter(fn: (r) => r._measurement == "noise" and r._field == "value" and r._value > ${thr.noise.max}) |> map(fn: (r) => ({ r with variable: "Ruido", threshold: "${thr.noise.max} dB" }))
-])
-  |> sort(columns: ["_time"], desc: true)
-  |> limit(n: 50)
-`;
+async function fetchTimeSeries(measurement, start) {
   try {
-    return await queryInflux(query);
-  } catch (e) {
-    console.error('Error consultando alertas:', e);
-    return [];
-  }
+    const rows = await queryInflux(`
+from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
+  |> range(start: -${start})
+  |> filter(fn: (r) => r._measurement == "${measurement}")
+  |> filter(fn: (r) => r._field == "value")
+  |> aggregateWindow(every: ${getWindowPeriod(start)}, fn: mean, createEmpty: false)
+  |> sort(columns: ["_time"])
+`);
+    return rows.map(r => ({ x: new Date(r._time), y: parseFloat(r._value), sensor: r.sensor_id }));
+  } catch(e) { console.error(e); return []; }
 }
 
-// ── Evaluación de umbrales ─────────────────────────────────────────────────
+function getWindowPeriod(range) {
+  const map = { '1h': '2m', '6h': '10m', '24h': '30m', '7d': '3h' };
+  return map[range] || '30m';
+}
 
+// ── Thresholds ─────────────────────────────────────────────────────────────
 function getStatus(measurement, value) {
   const thr = CONFIG.THRESHOLDS[measurement];
-  if (!thr || value === undefined) return 'ok';
-  const v = parseFloat(value);
-  if (isNaN(v)) return 'ok';
-  if (thr.max !== undefined && v > thr.max * 1.2) return 'danger';
-  if (thr.max !== undefined && v > thr.max)        return 'warn';
-  if (thr.min !== undefined && v < thr.min)        return 'warn';
+  if (!thr || isNaN(value)) return 'ok';
+  if (thr.max && value > thr.max * 1.2) return 'danger';
+  if (thr.max && value > thr.max)       return 'warn';
+  if (thr.min && value < thr.min)       return 'warn';
   return 'ok';
 }
 
-function worstStatus(row) {
-  const fields = ['co2','temperature','humidity','pm25','tvoc','noise','illuminance'];
+function worstStatus(data) {
   let worst = 'ok';
-  for (const f of fields) {
-    const s = getStatus(f, row[f]);
-    if (s === 'danger') return 'danger';
-    if (s === 'warn') worst = 'warn';
-  }
+  Object.keys(CONFIG.THRESHOLDS).forEach(k => {
+    const s = getStatus(k, data[k]);
+    if (s === 'danger') worst = 'danger';
+    else if (s === 'warn' && worst !== 'danger') worst = 'warn';
+  });
   return worst;
 }
 
-// ── Render helpers ─────────────────────────────────────────────────────────
-
+// ── Labels & units ─────────────────────────────────────────────────────────
 const LABELS = {
-  co2: 'CO₂', temperature: 'Temp', humidity: 'Humedad',
-  pm25: 'PM2.5', tvoc: 'TVOC', noise: 'Ruido', illuminance: 'Luz', battery: 'Batería'
+  temperature: 'Temperatura', humidity: 'Humedad', co2: 'CO₂',
+  tvoc: 'TVOC', pm25: 'PM2.5', pm10: 'PM10',
+  illuminance: 'Iluminancia', noise: 'Ruido', pressure: 'Presión',
+  battery: 'Batería', presence: 'Presencia',
+  door_open: 'Puerta', leak: 'Fuga'
 };
 const UNITS = {
-  co2: 'ppm', temperature: '°C', humidity: '%',
-  pm25: 'µg/m³', tvoc: 'µg/m³', noise: 'dB', illuminance: 'lux', battery: '%'
+  temperature: '°C', humidity: '%', co2: 'ppm',
+  tvoc: 'ppb', pm25: 'µg/m³', pm10: 'µg/m³',
+  illuminance: 'lux', noise: 'dB', pressure: 'hPa',
+  battery: '%', presence: '', door_open: '', leak: ''
 };
 
-function renderOverview(rows) {
+// ── Overview ───────────────────────────────────────────────────────────────
+async function renderOverview() {
+  const data = await fetchLatestValues();
   const grid = document.getElementById('overview-grid');
-  if (!rows.length) {
-    grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;grid-column:1/-1">No hay datos recientes. Verifica que el gateway esté transmitiendo.</div>';
+  const alertsEl = document.getElementById('overview-alerts');
+
+  const allSensorData = Object.values(data);
+  if (!allSensorData.length) {
+    grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;grid-column:1/-1">Sin datos recientes. Verifica que los sensores estén transmitiendo.</div>';
     return;
   }
 
-  // Promedio de todos los sensores por variable
-  const fields = Object.keys(LABELS);
+  // Promediar por variable
+  const fields = ['temperature','humidity','co2','tvoc','pm25','noise','illuminance','pressure','battery'];
   const avgs = {};
   fields.forEach(f => {
-    const vals = rows.map(r => parseFloat(r[f])).filter(v => !isNaN(v));
-    avgs[f] = vals.length ? vals.reduce((a, b) => a + b) / vals.length : null;
+    const vals = allSensorData.map(d => d[f]).filter(v => v !== undefined && !isNaN(v));
+    if (vals.length) avgs[f] = vals.reduce((a,b) => a+b) / vals.length;
   });
 
-  grid.innerHTML = fields.map(f => {
-    if (avgs[f] === null) return '';
-    const val = avgs[f].toFixed(f === 'temperature' ? 1 : 0);
-    const st  = getStatus(f, avgs[f]);
+  grid.innerHTML = Object.entries(avgs).map(([f, v]) => {
+    const st = getStatus(f, v);
+    const dec = f === 'temperature' ? 1 : 0;
     return `<div class="metric-chip ${st}">
-      <span class="label">${LABELS[f]}</span>
-      <span class="value">${val}</span>
-      <span class="unit">${UNITS[f]}</span>
+      <span class="label">${LABELS[f] || f}</span>
+      <span class="value">${v.toFixed(dec)}</span>
+      <span class="unit">${UNITS[f] || ''}</span>
     </div>`;
   }).join('');
 
   // Estado general
-  const allStatuses = rows.flatMap(r => fields.map(f => getStatus(f, r[f])));
-  const overall = allStatuses.includes('danger') ? 'danger' :
-                  allStatuses.includes('warn')   ? 'warn'   : 'ok';
+  const allStatuses = allSensorData.flatMap(d => fields.map(f => getStatus(f, d[f])));
+  const overall = allStatuses.includes('danger') ? 'danger' : allStatuses.includes('warn') ? 'warn' : 'ok';
   const badge = document.getElementById('overall-status');
   badge.className = 'status-badge ' + overall;
   badge.innerHTML = `<span class="status-dot"></span> ${overall === 'ok' ? 'Todo normal' : overall === 'warn' ? 'Alertas activas' : 'Alerta crítica'}`;
-}
 
-function renderOverviewAlerts(rows) {
-  const el = document.getElementById('overview-alerts');
+  // Alertas activas
   const alerts = [];
-  const fields = Object.keys(LABELS);
-
-  rows.forEach(row => {
-    const sensor = CONFIG.SENSORS.find(s => s.id === row.sensor_id) || { name: row.sensor_id };
+  Object.entries(data).forEach(([sensorId, d]) => {
+    const sensor = CONFIG.SENSORS.find(s => s.id === sensorId) || { name: sensorId };
     fields.forEach(f => {
-      const st = getStatus(f, row[f]);
+      const st = getStatus(f, d[f]);
       if (st !== 'ok') {
-        const thr = CONFIG.THRESHOLDS[f];
-        alerts.push({ sensor: sensor.name, variable: LABELS[f], value: parseFloat(row[f]).toFixed(1), unit: UNITS[f], level: st });
+        alerts.push({ sensor: sensor.name, variable: LABELS[f], value: d[f], unit: UNITS[f], level: st });
       }
     });
   });
 
   if (!alerts.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin alertas activas. Todas las variables dentro de rango.</div>';
-    return;
+    alertsEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin alertas activas.</div>';
+  } else {
+    alertsEl.innerHTML = alerts.map(a => `
+      <div class="alert-row ${a.level === 'danger' ? 'critical' : ''}">
+        <div class="alert-dot"></div>
+        <div class="alert-msg"><strong>${a.variable}</strong> — ${a.sensor}: <strong>${parseFloat(a.value).toFixed(1)} ${a.unit}</strong></div>
+        <div class="alert-time">Ahora</div>
+      </div>`).join('');
   }
-
-  el.innerHTML = alerts.map(a => `
-    <div class="alert-row ${a.level === 'danger' ? 'critical' : ''}">
-      <div class="alert-dot"></div>
-      <div class="alert-msg"><strong>${a.variable}</strong> — ${a.sensor}: <strong>${a.value} ${a.unit}</strong></div>
-      <div class="alert-time">Ahora</div>
-    </div>
-  `).join('');
 }
 
-function renderFloorplan(rows) {
+// ── Floorplan ──────────────────────────────────────────────────────────────
+async function renderFloorplan() {
+  const data = await fetchLatestValues();
   const container = document.getElementById('floorplan-container');
-  // Quitar marcadores viejos
   container.querySelectorAll('.sensor-marker').forEach(m => m.remove());
 
-  const rowMap = {};
-  rows.forEach(r => { if (r.sensor_id) rowMap[r.sensor_id] = r; });
-
   CONFIG.SENSORS.forEach(sensor => {
-    const data = rowMap[sensor.id] || {};
-    const status = worstStatus(data);
-
-    const fields = Object.keys(LABELS);
+    const d = data[sensor.id] || {};
+    const status = worstStatus(d);
+    const fields = ['temperature','humidity','co2','tvoc','pm25','noise','illuminance','battery'];
     const tipRows = fields.map(f => {
-      const v = parseFloat(data[f]);
-      if (isNaN(v)) return '';
+      const v = d[f];
+      if (v === undefined || isNaN(v)) return '';
       const st = getStatus(f, v);
-      return `<div class="tip-row"><span>${LABELS[f]}</span><span class="val ${st !== 'ok' ? st : ''}">${v.toFixed(f === 'temperature' ? 1 : 0)} ${UNITS[f]}</span></div>`;
+      const dec = f === 'temperature' ? 1 : 0;
+      return `<div class="tip-row"><span>${LABELS[f]}</span><span class="val ${st !== 'ok' ? st : ''}">${parseFloat(v).toFixed(dec)} ${UNITS[f]}</span></div>`;
     }).join('');
 
     const marker = document.createElement('div');
     marker.className = `sensor-marker ${status}`;
     marker.style.left = sensor.x + '%';
     marker.style.top  = sensor.y + '%';
-    marker.innerHTML  = `
+    marker.innerHTML = `
       <div class="dot"></div>
       <div class="sensor-tooltip">
         <div class="tip-title">${sensor.name}</div>
         ${tipRows || '<div style="color:var(--text-muted);font-size:12px;">Sin datos recientes</div>'}
-      </div>
-    `;
+      </div>`;
     container.appendChild(marker);
   });
 
@@ -365,65 +350,171 @@ function renderFloorplan(rows) {
     'Actualizado: ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 }
 
-function renderCharts() {
+// ── Charts ─────────────────────────────────────────────────────────────────
+const CHART_COLORS = {
+  temperature: '#1D9E75', humidity: '#378ADD', co2: '#E24B4A',
+  tvoc: '#BA7517', pm25: '#7F77DD', pm10: '#D85A30',
+  noise: '#D4537E', illuminance: '#639922', pressure: '#888780',
+  battery: '#5DCAA5'
+};
+
+const chartInstances = {};
+
+// Measurements que tienen datos — se actualiza dinámicamente
+const CHART_MEASUREMENTS = ['temperature', 'humidity', 'co2', 'tvoc', 'pm25', 'noise', 'illuminance', 'pressure', 'battery'];
+
+async function reloadCharts() {
+  const range = document.getElementById('time-range').value;
   const grid = document.getElementById('charts-grid');
-  const timeRange = 'from=now-24h&to=now';
-  const kiosk = '&kiosk=tv&theme=light';
+  const loading = document.getElementById('charts-loading');
+  loading.style.display = 'inline';
 
-  grid.innerHTML = Object.entries(CONFIG.GRAFANA_PANELS).map(([key, path]) => `
-    <div class="chart-frame-wrap">
-      <div class="chart-frame-label">${LABELS[key] || key}</div>
-      <iframe
-        src="${CONFIG.GRAFANA_BASE_URL}/${path}&${timeRange}${kiosk}"
-        loading="lazy"
-        title="Gráfica ${key}"
-        allow="fullscreen">
-      </iframe>
-    </div>
-  `).join('');
-}
+  // Destruir charts existentes
+  Object.values(chartInstances).forEach(c => c.destroy());
+  Object.keys(chartInstances).forEach(k => delete chartInstances[k]);
 
-async function renderAlertHistory() {
-  const el = document.getElementById('alerts-history');
-  const rows = await fetchAlertHistory();
+  // Detectar qué measurements tienen datos
+  let available = [];
+  try {
+    const check = await queryInflux(`
+from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
+  |> range(start: -${range})
+  |> filter(fn: (r) => r._field == "value")
+  |> keys()
+  |> distinct(column: "_measurement")
+`);
+    available = check.map(r => r._measurement).filter(m => CHART_MEASUREMENTS.includes(m));
+  } catch(e) {
+    available = CHART_MEASUREMENTS;
+  }
 
-  if (!rows.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin alertas en las últimas 24 horas.</div>';
+  if (!available.length) {
+    grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:16px">Sin datos en el rango seleccionado.</div>';
+    loading.style.display = 'none';
     return;
   }
 
-  el.innerHTML = rows.slice(0, 50).map(r => {
-    const sensor = CONFIG.SENSORS.find(s => s.id === r.sensor_id) || { name: r.sensor_id || 'Sensor desconocido' };
-    const ts = r._time ? new Date(r._time).toLocaleString('es-MX', { timeZone: 'America/Mazatlan', hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : '';
-    const val = parseFloat(r._value);
-    return `
-      <div class="alert-row">
-        <div class="alert-dot"></div>
-        <div class="alert-msg">
-          <strong>${r.variable || r._measurement}</strong> — ${sensor.name}:
-          <strong>${isNaN(val) ? r._value : val.toFixed(1)}</strong>
-          (umbral: ${r.threshold || '—'})
-        </div>
-        <div class="alert-time">${ts}</div>
+  // Crear contenedores
+  grid.innerHTML = available.map(m => `
+    <div class="chart-frame-wrap">
+      <div class="chart-frame-label">${LABELS[m] || m} ${UNITS[m] ? '(' + UNITS[m] + ')' : ''}</div>
+      <div style="padding:8px 12px 12px">
+        <canvas id="chart-${m}" height="160"></canvas>
       </div>
-    `;
-  }).join('');
+    </div>`).join('');
+
+  // Cargar datos y renderizar cada chart
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const tickColor = isDark ? '#888' : '#999';
+
+  for (const m of available) {
+    const points = await fetchTimeSeries(m, range);
+    if (!points.length) continue;
+
+    const canvas = document.getElementById('chart-' + m);
+    if (!canvas) continue;
+
+    const thr = CONFIG.THRESHOLDS[m];
+    const annotations = [];
+    if (thr && thr.max) annotations.push({ type: 'line', yMin: thr.max, yMax: thr.max, borderColor: 'rgba(226,75,74,0.5)', borderWidth: 1, borderDash: [4,4] });
+    if (thr && thr.min) annotations.push({ type: 'line', yMin: thr.min, yMax: thr.min, borderColor: 'rgba(186,117,23,0.5)', borderWidth: 1, borderDash: [4,4] });
+
+    chartInstances[m] = new Chart(canvas, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: LABELS[m] || m,
+          data: points,
+          borderColor: CHART_COLORS[m] || '#888',
+          backgroundColor: (CHART_COLORS[m] || '#888') + '18',
+          borderWidth: 2,
+          pointRadius: points.length > 50 ? 0 : 3,
+          pointHoverRadius: 5,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.parsed.y.toFixed(m === 'temperature' ? 1 : 0)} ${UNITS[m] || ''}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              tooltipFormat: 'dd/MM HH:mm',
+              displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' }
+            },
+            grid: { color: gridColor },
+            ticks: { color: tickColor, maxTicksLimit: 8 }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: { color: tickColor }
+          }
+        }
+      }
+    });
+  }
+
+  loading.style.display = 'none';
 }
 
-// ── Init & refresh loop ────────────────────────────────────────────────────
+// ── Alert history ──────────────────────────────────────────────────────────
+async function renderAlertHistory() {
+  const el = document.getElementById('alerts-history');
+  const thr = CONFIG.THRESHOLDS;
 
-async function refreshData() {
-  const rows = await fetchLatestValues();
-  renderOverview(rows);
-  renderOverviewAlerts(rows);
-  renderFloorplan(rows);
+  try {
+    const queries = [];
+    if (thr.co2)   queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="co2"&&r._field=="value"&&r._value>${thr.co2.max})|>map(fn:(r)=>({r with variable:"CO₂",threshold:">${thr.co2.max} ppm"}))`);
+    if (thr.pm25)  queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="pm25"&&r._field=="value"&&r._value>${thr.pm25.max})|>map(fn:(r)=>({r with variable:"PM2.5",threshold:">${thr.pm25.max} µg/m³"}))`);
+    if (thr.tvoc)  queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="tvoc"&&r._field=="value"&&r._value>${thr.tvoc.max})|>map(fn:(r)=>({r with variable:"TVOC",threshold:">${thr.tvoc.max} ppb"}))`);
+    if (thr.noise) queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="noise"&&r._field=="value"&&r._value>${thr.noise.max})|>map(fn:(r)=>({r with variable:"Ruido",threshold:">${thr.noise.max} dB"}))`);
+
+    if (!queries.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin historial disponible.</div>'; return; }
+
+    const flux = `union(tables:[${queries.join(',')}])|>sort(columns:["_time"],desc:true)|>limit(n:50)`;
+    const rows = await queryInflux(flux);
+
+    if (!rows.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin alertas en las últimas 24 horas.</div>';
+      return;
+    }
+
+    el.innerHTML = rows.map(r => {
+      const sensor = CONFIG.SENSORS.find(s => s.id === r.sensor_id) || { name: r.sensor_id || '—' };
+      const ts = r._time ? new Date(r._time).toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : '';
+      const val = parseFloat(r._value);
+      return `<div class="alert-row">
+        <div class="alert-dot"></div>
+        <div class="alert-msg"><strong>${r.variable || r._measurement}</strong> — ${sensor.name}: <strong>${isNaN(val) ? r._value : val.toFixed(1)}</strong> (límite: ${r.threshold || '—'})</div>
+        <div class="alert-time">${ts}</div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Error consultando historial.</div>';
+  }
 }
 
+// ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
-  renderCharts();
-  await refreshData();
-  await renderAlertHistory();
-  setInterval(refreshData, CONFIG.REFRESH_INTERVAL_MS);
+  await renderOverview();
+  await renderFloorplan();
+  setInterval(async () => {
+    await renderOverview();
+    await renderFloorplan();
+  }, CONFIG.REFRESH_INTERVAL_MS);
 }
 
 </script>

@@ -15,7 +15,7 @@ const CONFIG = {
   INFLUXDB_URL:    'https://us-east-1-1.aws.cloud2.influxdata.com',
   INFLUXDB_ORG:    'Dev Team',
   INFLUXDB_BUCKET: 'biblioteca',
-  INFLUXDB_TOKEN:  '9uStVS2-Fs8_BtjjLik3stwaQjnLF8gLaTc5lxOCucBYxg217N8PMuPhndNAYiUDgob5SZ3xs2JYhxh6Js_RVA==',   // Solo lectura, seguro exponer al browser
+  INFLUXDB_TOKEN:  'nQ0j47iX1vEAkiVxnxoKiW9ZdvFPCJWcZqLafzzAH-LUriuaHr_Plj8QVWVaHJwf4wlblxcRAJaW7ZOycnF_uw==',   // Solo lectura, seguro exponer al browser
 
   // ─── Grafana Cloud ────────────────────────────────────────────────────────
   // En Grafana: Share panel → Embed → habilita "Current time range" y copia la URL base
