@@ -53,7 +53,7 @@
 
     <!-- ── PAGE: Resumen ──────────────────────────────────── -->
     <div id="page-overview">
-      <div class="card">
+      <div class="card" style="margin-bottom: 1rem;">
         <div class="card-title">Estado actual</div>
         <div id="overview-grid" class="metric-grid">
           <div class="metric-chip"><span class="label">Cargando</span><span class="value">—</span></div>
@@ -91,9 +91,9 @@
     <!-- ── PAGE: Gráficas ─────────────────────────────────── -->
     <div id="page-charts" style="display:none">
 
-      <div class="card" style="margin-bottom:0">
+      <div class="card" style="margin-bottom:1rem">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div class="card-title" style="margin:0">Rango de tiempo</div>
+          <div class="card-title" style="margin:0;">Rango de tiempo</div>
           <select id="time-range" onchange="reloadCharts()" style="font-size:13px;padding:6px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border);background:var(--bg);color:var(--text)">
             <option value="1h">Última hora</option>
             <option value="6h">Últimas 6 horas</option>
@@ -470,37 +470,70 @@ from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
 async function renderAlertHistory() {
   const el = document.getElementById('alerts-history');
   const thr = CONFIG.THRESHOLDS;
+  const allAlerts = [];
 
   try {
-    const queries = [];
-    if (thr.co2)   queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="co2"&&r._field=="value"&&r._value>${thr.co2.max})|>map(fn:(r)=>({r with variable:"CO₂",threshold:">${thr.co2.max} ppm"}))`);
-    if (thr.pm25)  queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="pm25"&&r._field=="value"&&r._value>${thr.pm25.max})|>map(fn:(r)=>({r with variable:"PM2.5",threshold:">${thr.pm25.max} µg/m³"}))`);
-    if (thr.tvoc)  queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="tvoc"&&r._field=="value"&&r._value>${thr.tvoc.max})|>map(fn:(r)=>({r with variable:"TVOC",threshold:">${thr.tvoc.max} ppb"}))`);
-    if (thr.noise) queries.push(`from(bucket:"${CONFIG.INFLUXDB_BUCKET}")|>range(start:-24h)|>filter(fn:(r)=>r._measurement=="noise"&&r._field=="value"&&r._value>${thr.noise.max})|>map(fn:(r)=>({r with variable:"Ruido",threshold:">${thr.noise.max} dB"}))`);
+    const checks = [
+      { m: 'co2',         label: 'CO₂',   unit: 'ppm',   limit: thr.co2?.max,   type: 'max' },
+      { m: 'pm25',        label: 'PM2.5', unit: 'µg/m³', limit: thr.pm25?.max,  type: 'max' },
+      { m: 'tvoc',        label: 'TVOC',  unit: 'ppb',   limit: thr.tvoc?.max,  type: 'max' },
+      { m: 'noise',       label: 'Ruido', unit: 'dB',    limit: thr.noise?.max, type: 'max' },
+      { m: 'temperature', label: 'Temp',  unit: '°C',    limit: thr.temperature?.max, type: 'max' },
+      { m: 'humidity',    label: 'Humedad', unit: '%',   limit: thr.humidity?.max, type: 'max' },
+    ];
 
-    if (!queries.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin historial disponible.</div>'; return; }
+    for (const c of checks) {
+      if (!c.limit) continue;
+      try {
+        const rows = await queryInflux(`
+from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
+  |> range(start: -24h)
+  |> filter(fn: (r) => r._measurement == "${c.m}")
+  |> filter(fn: (r) => r._field == "value")
+  |> filter(fn: (r) => r._value > ${c.limit})
+  |> sort(columns: ["_time"], desc: true)
+  |> limit(n: 20)
+`);
+        rows.forEach(r => {
+          allAlerts.push({
+            time:      r._time,
+            variable:  c.label,
+            unit:      c.unit,
+            value:     parseFloat(r._value),
+            threshold: c.limit,
+            sensorId:  r.sensor_id
+          });
+        });
+      } catch(e) { /* saltar si falla una variable */ }
+    }
 
-    const flux = `union(tables:[${queries.join(',')}])|>sort(columns:["_time"],desc:true)|>limit(n:50)`;
-    const rows = await queryInflux(flux);
-
-    if (!rows.length) {
+    if (!allAlerts.length) {
       el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin alertas en las últimas 24 horas.</div>';
       return;
     }
 
-    el.innerHTML = rows.map(r => {
-      const sensor = CONFIG.SENSORS.find(s => s.id === r.sensor_id) || { name: r.sensor_id || '—' };
-      const ts = r._time ? new Date(r._time).toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : '';
-      const val = parseFloat(r._value);
+    // Ordenar por tiempo descendente
+    allAlerts.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+    el.innerHTML = allAlerts.slice(0, 50).map(a => {
+      const sensor = CONFIG.SENSORS.find(s => s.id === a.sensorId) || { name: a.sensorId || '—' };
+      const ts = a.time ? new Date(a.time).toLocaleString('es-MX', {
+        hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'
+      }) : '';
       return `<div class="alert-row">
         <div class="alert-dot"></div>
-        <div class="alert-msg"><strong>${r.variable || r._measurement}</strong> — ${sensor.name}: <strong>${isNaN(val) ? r._value : val.toFixed(1)}</strong> (límite: ${r.threshold || '—'})</div>
+        <div class="alert-msg">
+          <strong>${a.variable}</strong> — ${sensor.name}:
+          <strong>${a.value.toFixed(1)} ${a.unit}</strong>
+          (límite: ${a.threshold} ${a.unit})
+        </div>
         <div class="alert-time">${ts}</div>
       </div>`;
     }).join('');
 
   } catch(e) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Error consultando historial.</div>';
+    console.error('Error historial:', e);
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Error consultando historial: ' + e.message + '</div>';
   }
 }
 
