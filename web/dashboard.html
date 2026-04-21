@@ -73,7 +73,7 @@
       <div class="card">
         <div class="card-title">Plano — haz hover sobre un sensor</div>
         <div class="floorplan-wrap" id="floorplan-container">
-          <img src="plano.png" alt="Plano" id="floorplan-img"
+          <img src="https://cdn.imgchest.com/files/449e5e3f8bfb.jpeg" alt="Plano" id="floorplan-img"
                onerror="this.style.display='none';document.getElementById('floorplan-fallback').style.display='flex'">
           <div id="floorplan-fallback" style="display:none;align-items:center;justify-content:center;min-height:260px;color:var(--text-muted);font-size:13px;flex-direction:column;gap:8px;">
             <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
@@ -339,7 +339,7 @@ async function renderFloorplan() {
       <div class="dot"></div>
       <div class="sensor-tooltip">
         <div class="tip-title">${sensor.name}</div>
-        ${tipRows || '<div style="color:var(--text-muted);font-size:12px;">Sin datos recientes</div>'}
+        ${tipRows || '<div style="color:var(--text-muted);font-size:12px;">Dispositivo activo.</div>'}
       </div>`;
     container.appendChild(marker);
   });
@@ -470,72 +470,97 @@ from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
 // ── Alert history ──────────────────────────────────────────────────────────
 async function renderAlertHistory() {
   const el = document.getElementById('alerts-history');
+  el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Consultando…</div>';
   const thr = CONFIG.THRESHOLDS;
   const allAlerts = [];
 
-  try {
-    const checks = [
-      { m: 'co2',         label: 'CO₂',   unit: 'ppm',   limit: thr.co2?.max,   type: 'max' },
-      { m: 'pm25',        label: 'PM2.5', unit: 'µg/m³', limit: thr.pm25?.max,  type: 'max' },
-      { m: 'tvoc',        label: 'TVOC',  unit: 'ppb',   limit: thr.tvoc?.max,  type: 'max' },
-      { m: 'noise',       label: 'Ruido', unit: 'dB',    limit: thr.noise?.max, type: 'max' },
-      { m: 'temperature', label: 'Temp',  unit: '°C',    limit: thr.temperature?.max, type: 'max' },
-      { m: 'humidity',    label: 'Humedad', unit: '%',   limit: thr.humidity?.max, type: 'max' },
-    ];
+  const checks = [
+    { m: 'co2',         label: 'CO₂',       unit: 'ppm',   max: thr.co2?.max },
+    { m: 'pm25',        label: 'PM2.5',      unit: 'µg/m³', max: thr.pm25?.max },
+    { m: 'tvoc',        label: 'TVOC',       unit: 'ppb',   max: thr.tvoc?.max },
+    { m: 'noise',       label: 'Ruido',      unit: 'dB',    max: thr.noise?.max },
+    { m: 'temperature', label: 'Temperatura',unit: '°C',    max: thr.temperature?.max, min: thr.temperature?.min },
+    { m: 'humidity',    label: 'Humedad',    unit: '%',     max: thr.humidity?.max,    min: thr.humidity?.min },
+    { m: 'illuminance', label: 'Iluminancia',unit: 'lux',   min: thr.illuminance?.min },
+  ];
 
-    for (const c of checks) {
-      if (!c.limit) continue;
+  for (const c of checks) {
+    // Alerta por máximo
+    if (c.max !== undefined) {
       try {
         const rows = await queryInflux(`
 from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
   |> range(start: -24h)
   |> filter(fn: (r) => r._measurement == "${c.m}")
   |> filter(fn: (r) => r._field == "value")
-  |> filter(fn: (r) => r._value > ${c.limit})
+  |> filter(fn: (r) => r._value > ${c.max})
   |> sort(columns: ["_time"], desc: true)
-  |> limit(n: 20)
+  |> limit(n: 30)
 `);
-        rows.forEach(r => {
-          allAlerts.push({
-            time:      r._time,
-            variable:  c.label,
-            unit:      c.unit,
-            value:     parseFloat(r._value),
-            threshold: c.limit,
-            sensorId:  r.sensor_id
-          });
-        });
-      } catch(e) { /* saltar si falla una variable */ }
+        rows.forEach(r => allAlerts.push({
+          time:      r._time,
+          variable:  c.label,
+          unit:      c.unit,
+          value:     parseFloat(r._value),
+          limit:     c.max,
+          direction: 'sobre el máximo',
+          level:     'warn',
+          sensorId:  r.sensor_id
+        }));
+      } catch(e) { console.warn('Error consultando ' + c.m, e); }
     }
 
-    if (!allAlerts.length) {
-      el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin alertas en las últimas 24 horas.</div>';
-      return;
+    // Alerta por mínimo
+    if (c.min !== undefined) {
+      try {
+        const rows = await queryInflux(`
+from(bucket: "${CONFIG.INFLUXDB_BUCKET}")
+  |> range(start: -24h)
+  |> filter(fn: (r) => r._measurement == "${c.m}")
+  |> filter(fn: (r) => r._field == "value")
+  |> filter(fn: (r) => r._value < ${c.min})
+  |> sort(columns: ["_time"], desc: true)
+  |> limit(n: 30)
+`);
+        rows.forEach(r => allAlerts.push({
+          time:      r._time,
+          variable:  c.label,
+          unit:      c.unit,
+          value:     parseFloat(r._value),
+          limit:     c.min,
+          direction: 'bajo el mínimo',
+          level:     'warn',
+          sensorId:  r.sensor_id
+        }));
+      } catch(e) { console.warn('Error consultando ' + c.m + ' min', e); }
     }
+  }
 
-    // Ordenar por tiempo descendente
-    allAlerts.sort((a, b) => new Date(b.time) - new Date(a.time));
+  if (!allAlerts.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin alertas en las últimas 24 horas. Todas las variables dentro de rango.</div>';
+    return;
+  }
 
-    el.innerHTML = allAlerts.slice(0, 50).map(a => {
-      const sensor = CONFIG.SENSORS.find(s => s.id === a.sensorId) || { name: a.sensorId || '—' };
-      const ts = a.time ? new Date(a.time).toLocaleString('es-MX', {
-        hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'
-      }) : '';
-      return `<div class="alert-row">
+  // Ordenar por tiempo más reciente primero
+  allAlerts.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  el.innerHTML = allAlerts.slice(0, 100).map(a => {
+    const sensor = CONFIG.SENSORS.find(s => s.id === a.sensorId) || { name: a.sensorId || 'Sensor desconocido' };
+    const ts = a.time ? new Date(a.time).toLocaleString('es-MX', {
+      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',  month: 'short'
+    }) : '';
+    return `
+      <div class="alert-row">
         <div class="alert-dot"></div>
         <div class="alert-msg">
           <strong>${a.variable}</strong> — ${sensor.name}:
           <strong>${a.value.toFixed(1)} ${a.unit}</strong>
-          (límite: ${a.threshold} ${a.unit})
+          <span style="color:var(--text-muted);">(${a.direction}: ${a.limit} ${a.unit})</span>
         </div>
         <div class="alert-time">${ts}</div>
       </div>`;
-    }).join('');
-
-  } catch(e) {
-    console.error('Error historial:', e);
-    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Error consultando historial: ' + e.message + '</div>';
-  }
+  }).join('');
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

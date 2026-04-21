@@ -31,11 +31,9 @@ const CONFIG = {
   // Agregar o quitar sensores según tu instalación.
   // x e y son porcentajes sobre la imagen del plano (0-100)
   SENSORS: [
-    { id: 'eui-0123456789abcdef',  name: 'Sala silenciosa',      x: 15,  y: 35 },
-    { id: 'eui-abcdef0123456789',  name: 'Recepción',            x: 45,  y: 35 },
-    { id: 'eui-1234abcd5678ef01',  name: 'Sala de cómputo',      x: 78,  y: 35 },
-    { id: 'eui-ef015678abcd1234',  name: 'Esp. Colaborativo A',  x: 25,  y: 72 },
-    { id: 'eui-5678ef01abcd1234',  name: 'Esp. Colaborativo B',  x: 72,  y: 72 },
+    { id: 'eui-0123456789abcdef',  name: 'Gateway',      x: 91.5,  y: 63.5 },
+    { id: 'eui-abcdef0123456789',  name: 'Ambiental',    x: 53.1,  y: 75 },
+    { id: 'eui-1234abcd5678ef01',  name: 'Puerta',       x: 56.5,  y: 55 },
   ],
 
   // ─── Umbrales de alerta (para indicadores visuales en el dashboard) ────────
